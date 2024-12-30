@@ -1,4 +1,4 @@
-import { configDotenv } from "dotenv";
+const configDotenv = require("dotenv").config;
 configDotenv({ path: ".env" });
 
 const config = {
@@ -12,18 +12,30 @@ const config = {
   frontend: {
     url: process.env.FRONTEND_URL,
   },
+  cors: {
+    origin: process.env.FRONTEND_URL || "*",
+    credential: process.env.FRONTEND_URL !== "*" ? true : false,
+  },
   log: {
     format: process.env.LOG_FORMAT || "combined",
     dir: process.env.LOG_DIR || "logs",
     level: process.env.LOG_LEVEL || "info",
   },
   db: {
-    type: process.env.DB_TYPE || "mongodb",
+    type: process.env.DB_TYPE || "mongodb", // "mongodb", "postgresql", or "mysql"
     mongodb: {
       url: process.env.DB_URL,
       name: process.env.DB_NAME,
     },
-    // can add more databases like mysql, postgres
+    postgresql: {
+      url: process.env.DB_URL,
+    },
+    mysql: {
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS,
+      database: process.env.DB_NAME,
+    },
   },
   jwt: {
     secret: process.env.JWT_SECRET || "secret",
