@@ -1,4 +1,4 @@
-const HttpException = require("../exceptions/HttpException");
+const ValidationException = require("../exceptions/ValidationException");
 
 const validate = (reqBody, validationSchema) => {
   const { error } = validationSchema.validate(reqBody, { abortEarly: false });
@@ -8,7 +8,7 @@ const validate = (reqBody, validationSchema) => {
       return acc;
     }, {});
 
-    throw new HttpException(400, formattedErrors);
+    throw new ValidationException(400, "Validation error", formattedErrors);
   }
 };
 

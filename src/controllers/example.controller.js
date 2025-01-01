@@ -1,4 +1,3 @@
-const Joi = require("joi");
 const HttpException = require("../exceptions/HttpException");
 const asyncHandler = require("../utils/asyncHandler");
 const validate = require("../utils/validationHandler");
