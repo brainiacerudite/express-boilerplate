@@ -11,15 +11,11 @@ const example = asyncHandler(async (req, res, next) => {
 });
 
 const postExample = asyncHandler(async (req, res, next) => {
-  // define the validation schema here or you can create validation folder and separate the schema
+  // define the validation schema or import validation schema
   // const schema = Joi.object({
   //   name: Joi.string().required(),
   //   email: Joi.string().email().required(),
   // });
-  // validate(req.body, schema);
-  /**
-   * the above valdation has been moved to seperate validation file
-   */
   validate(req.body, exampleValidation);
 
   const { name, email } = req.body;
