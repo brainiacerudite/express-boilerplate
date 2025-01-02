@@ -8,7 +8,7 @@ const validate = (reqBody, validationSchema) => {
       return acc;
     }, {});
 
-    throw new ValidationException(400, "Validation error", formattedErrors);
+    throw new ValidationException(422, "Validation error", formattedErrors);
   }
 };
 
