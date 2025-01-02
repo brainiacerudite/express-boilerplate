@@ -5,6 +5,8 @@ const router = express.Router();
 
 // register endpoints here
 router.use(config.api.prefix, require("./app.route"));
+router.use(config.api.prefix, require("./auth.route"));
+router.use(config.api.prefix, require("./user.route"));
 
 // register docs route here if any
 
