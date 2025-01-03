@@ -15,7 +15,7 @@ const dbConnection = async () => {
         options: {},
       };
 
-      if (config.env !== "production") {
+      if (config.env === "development") {
         mongoose.set("debug", true);
       }
 
