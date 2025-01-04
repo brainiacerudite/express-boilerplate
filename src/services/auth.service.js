@@ -7,7 +7,7 @@ const register = async (data) => {
 
   const checkEmail = await User.findOne({ email });
   if (checkEmail) {
-    throw new ValidationException(400, "Email already exists");
+    throw new ValidationException(400, "Email already taken");
   }
 
   if (password !== confirmPassword) {
@@ -25,7 +25,27 @@ const register = async (data) => {
   return user;
 };
 
-const login = async (data) => {};
+const login = async (data) => {
+  const { email, password } = data;
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ValidationException(
+      400,
+      "These credentials do not match our records."
+    );
+  }
+
+  const isPasswordMatch = await bcrypt.compare(password, user.password);
+  if (!isPasswordMatch) {
+    throw new ValidationException(
+      400,
+      "These credentials do not match our records."
+    );
+  }
+
+  return user;
+};
 
 const logout = async () => {};
 
