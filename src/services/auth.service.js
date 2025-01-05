@@ -1,4 +1,6 @@
+const { REFRESH } = require("../config/tokenTypes");
 const ValidationException = require("../exceptions/ValidationException");
+const Token = require("../models/token.model");
 const User = require("../models/user.model");
 const bcrypt = require("bcryptjs");
 
@@ -47,7 +49,19 @@ const login = async (data) => {
   return user;
 };
 
-const logout = async () => {};
+const logout = async (refreshToken) => {
+  const token = await Token.findOne({
+    token: refreshToken,
+    type: REFRESH,
+    blacklisted: false,
+  });
+
+  if (!token) {
+    throw new ValidationException(400, "Invalid token");
+  }
+
+  await token.deleteOne();
+};
 
 const forgotPassword = async (data) => {};
 
