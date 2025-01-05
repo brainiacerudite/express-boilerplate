@@ -1,4 +1,5 @@
 const authService = require("../services/auth.service");
+const tokenService = require("../services/token.service");
 const asyncHandler = require("../utils/asyncHandler");
 const validate = require("../utils/validationHandler");
 const authValidation = require("../validations/auth.validation");
@@ -18,13 +19,22 @@ const register = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
   validate(req.body, authValidation.login);
 
-  res.status(200).json({ success: true, message: "Login" });
+  const userData = await authService.login(req.body);
+  const tokens = await tokenService.generateAuthToken(userData.id);
+
+  res.status(200).json({
+    success: true,
+    message: "Login Successfully",
+    data: { user: userData, tokens },
+  });
 });
 
 const logout = asyncHandler(async (req, res) => {
   validate(req.body, authValidation.logout);
 
-  res.status(200).json({ success: true, message: "Logout" });
+  await authService.logout(req.body.refreshToken);
+
+  res.status(200).json({ success: true, message: "Logout Successfully" });
 });
 
 const refreshToken = asyncHandler(async (req, res) => {

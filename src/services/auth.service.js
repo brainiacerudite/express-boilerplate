@@ -1,4 +1,6 @@
+const { REFRESH } = require("../config/tokenTypes");
 const ValidationException = require("../exceptions/ValidationException");
+const Token = require("../models/token.model");
 const User = require("../models/user.model");
 const bcrypt = require("bcryptjs");
 
@@ -7,7 +9,7 @@ const register = async (data) => {
 
   const checkEmail = await User.findOne({ email });
   if (checkEmail) {
-    throw new ValidationException(400, "Email already exists");
+    throw new ValidationException(400, "Email already taken");
   }
 
   if (password !== confirmPassword) {
@@ -25,9 +27,41 @@ const register = async (data) => {
   return user;
 };
 
-const login = async (data) => {};
+const login = async (data) => {
+  const { email, password } = data;
 
-const logout = async () => {};
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ValidationException(
+      400,
+      "These credentials do not match our records."
+    );
+  }
+
+  const isPasswordMatch = await bcrypt.compare(password, user.password);
+  if (!isPasswordMatch) {
+    throw new ValidationException(
+      400,
+      "These credentials do not match our records."
+    );
+  }
+
+  return user;
+};
+
+const logout = async (refreshToken) => {
+  const token = await Token.findOne({
+    token: refreshToken,
+    type: REFRESH,
+    blacklisted: false,
+  });
+
+  if (!token) {
+    throw new ValidationException(400, "Invalid token");
+  }
+
+  await token.deleteOne();
+};
 
 const forgotPassword = async (data) => {};
 
