@@ -63,7 +63,30 @@ const logout = async (refreshToken) => {
   await token.deleteOne();
 };
 
-const refreshToken = async (data) => {};
+const refreshToken = async (data) => {
+  const { refreshToken } = data;
+
+  const tokenDoc = await Token.findOne({
+    token: refreshToken,
+    type: REFRESH,
+  });
+
+  if (!tokenDoc) {
+    throw new ValidationException(400, "Invalid token");
+  }
+
+  const userData = await User.findById(tokenDoc.user);
+
+  if (!userData) {
+    throw new ValidationException(400, "Invalid token");
+  }
+
+  await tokenDoc.deleteOne();
+
+  const tokens = await tokenService.generateAuthToken(userData.id);
+
+  return tokens;
+};
 
 const forgotPassword = async (data) => {};
 

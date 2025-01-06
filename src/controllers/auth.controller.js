@@ -40,7 +40,11 @@ const logout = asyncHandler(async (req, res) => {
 const refreshToken = asyncHandler(async (req, res) => {
   validate(req.body, authValidation.refreshToken);
 
-  res.status(200).json({ success: true, message: "Refresh Token" });
+  const tokens = await authService.refreshToken(req.body.refreshToken);
+
+  res
+    .status(200)
+    .json({ success: true, message: "Refresh Tokens", data: tokens });
 });
 
 const forgotPassword = asyncHandler(async (req, res) => {
