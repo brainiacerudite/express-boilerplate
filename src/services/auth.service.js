@@ -63,9 +63,13 @@ const logout = async (refreshToken) => {
   await token.deleteOne();
 };
 
+const refreshToken = async (data) => {};
+
 const forgotPassword = async (data) => {};
 
 const resetPassword = async (data) => {};
+
+const sendVerificationEmail = async (data) => {};
 
 const verifyEmail = async (data) => {};
 
@@ -73,8 +77,10 @@ const authService = {
   register,
   login,
   logout,
+  refreshToken,
   forgotPassword,
   resetPassword,
+  sendVerificationEmail,
   verifyEmail,
 };
 module.exports = authService;
