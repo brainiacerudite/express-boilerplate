@@ -12,6 +12,12 @@ const generateToken = (userId, expires, type, secret = config.jwt.secret) => {
   return jwt.sign({ sub: userId, type }, secret, { expiresIn: expires });
 };
 
+const generateNumericToken = (length) => {
+  return Math.floor(
+    Math.pow(10, length - 1) + Math.random() * (Math.pow(10, length) - 1)
+  );
+};
+
 const saveToken = async (token, userId, expires, type, blacklisted = false) => {
   const tokenData = await Token.create({
     token,
@@ -69,11 +75,7 @@ const generateAuthToken = async (userId) => {
 };
 
 const generateResetPasswordToken = async (userId) => {
-  const token = generateToken(
-    userId,
-    config.jwt.resetPassword.expiresIn,
-    RESET_PASSWORD
-  );
+  const token = generateNumericToken(4);
 
   await saveToken(
     token,
@@ -82,15 +84,11 @@ const generateResetPasswordToken = async (userId) => {
     RESET_PASSWORD
   );
 
-  return token;
+  return { token, expiresIn: config.jwt.resetPassword.expiresIn };
 };
 
-const generateVerifyEmailToken = async (userId) => {
-  const token = generateToken(
-    userId,
-    config.jwt.verifyEmail.expiresIn,
-    VERIFY_EMAIL
-  );
+const generateVerificationToken = async (userId) => {
+  const token = generateNumericToken(4);
 
   await saveToken(
     token,
@@ -99,13 +97,13 @@ const generateVerifyEmailToken = async (userId) => {
     VERIFY_EMAIL
   );
 
-  return token;
+  return { token, expiresIn: config.jwt.verifyEmail.expiresIn };
 };
 
 const tokenService = {
   generateAuthToken,
   generateResetPasswordToken,
-  generateVerifyEmailToken,
+  generateVerificationToken,
   verifyToken,
 };
 module.exports = tokenService;
