@@ -3,6 +3,8 @@ const ValidationException = require("../exceptions/ValidationException");
 const Token = require("../models/token.model");
 const User = require("../models/user.model");
 const bcrypt = require("bcryptjs");
+const emailService = require("./email.service");
+const tokenService = require("./token.service");
 
 const register = async (data) => {
   const { name, email, password, confirmPassword } = data;
@@ -24,7 +26,19 @@ const register = async (data) => {
     password: hashedPassword,
   });
 
-  return user;
+  const verificationToken = await tokenService.generateVerificationToken(
+    user.id
+  );
+
+  await emailService.sendVerificationEmail(
+    email,
+    verificationToken.token,
+    verificationToken.expiresIn
+  );
+
+  const tokens = await tokenService.generateAuthToken(user.id);
+
+  return { user, tokens };
 };
 
 const login = async (data) => {
@@ -46,7 +60,9 @@ const login = async (data) => {
     );
   }
 
-  return user;
+  const tokens = await tokenService.generateAuthToken(userData.id);
+
+  return { user, tokens };
 };
 
 const logout = async (refreshToken) => {

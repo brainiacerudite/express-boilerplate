@@ -56,7 +56,7 @@ const config = {
     host: process.env.MAIL_HOST,
     port: process.env.MAIL_PORT,
     user: process.env.MAIL_USER,
-    password: process.env.MAIL_PASS,
+    pass: process.env.MAIL_PASS,
     from: {
       email: process.env.MAIL_FROM,
       name: process.env.MAIL_FROM_NAME,
