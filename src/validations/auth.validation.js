@@ -25,6 +25,7 @@ const forgotPassword = Joi.object({
 });
 
 const resetPassword = Joi.object({
+  token: Joi.string().required(),
   password: Joi.string().required(),
   confirmPassword: Joi.string().required().valid(Joi.ref("password")),
 });

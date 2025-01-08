@@ -48,25 +48,45 @@ const refreshToken = asyncHandler(async (req, res) => {
 const forgotPassword = asyncHandler(async (req, res) => {
   validate(req.body, authValidation.forgotPassword);
 
-  res.status(200).json({ success: true, message: "Forgot Password" });
+  await authService.forgotPassword(req.body);
+
+  res.status(200).json({ success: true, message: "Code Sent Successfully" });
+});
+
+const verifyResetToken = asyncHandler(async (req, res) => {
+  // validate(req.body, authValidation.)
+
+  const tokenDoc = await authService.verifyResetToken(req.body);
+
+  res
+    .status(200)
+    .json({ success: true, message: "Token Verified", data: tokenDoc });
 });
 
 const resetPassword = asyncHandler(async (req, res) => {
   validate(req.body, authValidation.resetPassword);
 
-  res.status(200).json({ success: true, message: "Reset Password" });
+  await authService.resetPassword(req.body);
+
+  res
+    .status(200)
+    .json({ success: true, message: "Password Reset Successfully" });
 });
 
 const sendVerificationEmail = asyncHandler(async (req, res) => {
   validate(req.body, authValidation.sendVerificationEmail);
 
-  res.status(200).json({ success: true, message: "Send Verification Email" });
+  await authService.sendVerificationEmail(req.body);
+
+  res.status(200).json({ success: true, message: "Verification Email Sent" });
 });
 
 const verifyEmail = asyncHandler(async (req, res) => {
   validate(req.body, authValidation.verifyEmail);
 
-  res.status(200).json({ success: true, message: "Verify Email" });
+  await authService.verifyEmail(req.body);
+
+  res.status(200).json({ success: true, message: "Email Verified" });
 });
 
 const AuthController = {
@@ -75,6 +95,7 @@ const AuthController = {
   logout,
   refreshToken,
   forgotPassword,
+  verifyResetToken,
   resetPassword,
   sendVerificationEmail,
   verifyEmail,

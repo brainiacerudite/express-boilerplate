@@ -1,4 +1,4 @@
-const { REFRESH } = require("../config/tokenTypes");
+const { REFRESH, RESET_PASSWORD } = require("../config/tokenTypes");
 const ValidationException = require("../exceptions/ValidationException");
 const Token = require("../models/token.model");
 const User = require("../models/user.model");
@@ -104,13 +104,88 @@ const refreshToken = async (data) => {
   return tokens;
 };
 
-const forgotPassword = async (data) => {};
+const forgotPassword = async (data) => {
+  const { email } = data;
 
-const resetPassword = async (data) => {};
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ValidationException(400, "User not found");
+  }
 
-const sendVerificationEmail = async (data) => {};
+  const passwordResetToken = await tokenService.generateResetPasswordToken(
+    user.id
+  );
 
-const verifyEmail = async (data) => {};
+  await emailService.sendResetPasswordEmail(
+    email,
+    passwordResetToken.token,
+    passwordResetToken.expiresIn
+  );
+};
+
+const verifyResetToken = async (data) => {
+  const { token } = data;
+
+  const tokenDoc = await tokenService.verifyToken(token, RESET_PASSWORD);
+
+  if (!tokenDoc) {
+    throw new ValidationException(400, "Invalid or expired token");
+  }
+
+  return tokenDoc;
+};
+
+const resetPassword = async (data) => {
+  const { token, password, confirmPassword } = data;
+
+  if (password !== confirmPassword) {
+    throw new ValidationException(400, "Passwords do not match");
+  }
+
+  // const tokenDoc = await Token.findOne({
+  //   token,
+  //   type: RESET_PASSWORD,
+  // });
+  const tokenDoc = await tokenService.verifyToken(token, RESET_PASSWORD);
+
+  // if (!tokenDoc) {
+  //   throw new ValidationException(400, "Invalid token");
+  // }
+
+  const user = await User.findById(tokenDoc.user);
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  user.password = hashedPassword;
+  await user.save();
+
+  await tokenDoc.deleteOne();
+};
+
+const sendVerificationEmail = async (email, token, expiresIn) => {
+  // Implementation of sending the verification email
+  await emailService.sendEmail({
+    to: email,
+    subject: "Verify your account",
+    text: `Your OTP for account verification is ${token}. It will expire in ${expiresIn} minutes.`,
+  });
+};
+
+const verifyEmail = async (data) => {
+  const { token } = data;
+
+  const tokenDoc = await tokenService.verifyToken(token, VERIFY_EMAIL);
+
+  const user = await User.findById(tokenDoc.user);
+  if (!user) {
+    throw new ValidationException(400, "Invalid token");
+  }
+
+  user.isVerified = true;
+  await user.save();
+
+  await tokenDoc.deleteOne();
+};
 
 const authService = {
   register,
@@ -118,6 +193,7 @@ const authService = {
   logout,
   refreshToken,
   forgotPassword,
+  verifyResetToken,
   resetPassword,
   sendVerificationEmail,
   verifyEmail,

@@ -12,7 +12,7 @@ const generateToken = (userId, expires, type, secret = config.jwt.secret) => {
   return jwt.sign({ sub: userId, type }, secret, { expiresIn: expires });
 };
 
-const generateNumericToken = (length) => {
+const generateOtp = (length) => {
   return Math.floor(
     Math.pow(10, length - 1) + Math.random() * (Math.pow(10, length) - 1)
   );
@@ -75,7 +75,7 @@ const generateAuthToken = async (userId) => {
 };
 
 const generateResetPasswordToken = async (userId) => {
-  const token = generateNumericToken(4);
+  const token = generateOtp(4);
 
   await saveToken(
     token,
@@ -88,7 +88,7 @@ const generateResetPasswordToken = async (userId) => {
 };
 
 const generateVerificationToken = async (userId) => {
-  const token = generateNumericToken(4);
+  const token = generateOtp(4);
 
   await saveToken(
     token,
