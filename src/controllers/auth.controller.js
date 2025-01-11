@@ -15,6 +15,22 @@ const register = asyncHandler(async (req, res) => {
   });
 });
 
+const resendOtp = asyncHandler(async (req, res) => {
+  validate(req.body, authValidation.resendOtp);
+
+  await authService.resendOtp(req.body);
+
+  res.status(200).json({ success: true, message: "OTP Resent Successfully" });
+});
+
+const verifyOtp = asyncHandler(async (req, res) => {
+  validate(req.body, authValidation.verifyOtp);
+
+  await authService.verifyOtp(req.body);
+
+  res.status(200).json({ success: true, message: "OTP Verified Successfully" });
+});
+
 const login = asyncHandler(async (req, res) => {
   validate(req.body, authValidation.login);
 
@@ -27,14 +43,6 @@ const login = asyncHandler(async (req, res) => {
   });
 });
 
-const logout = asyncHandler(async (req, res) => {
-  validate(req.body, authValidation.logout);
-
-  await authService.logout(req.body.refreshToken);
-
-  res.status(200).json({ success: true, message: "Logout Successfully" });
-});
-
 const refreshToken = asyncHandler(async (req, res) => {
   validate(req.body, authValidation.refreshToken);
 
@@ -45,6 +53,14 @@ const refreshToken = asyncHandler(async (req, res) => {
     .json({ success: true, message: "Refresh Tokens", data: tokens });
 });
 
+const logout = asyncHandler(async (req, res) => {
+  validate(req.body, authValidation.logout);
+
+  await authService.logout(req.body.refreshToken);
+
+  res.status(200).json({ success: true, message: "Logout Successfully" });
+});
+
 const forgotPassword = asyncHandler(async (req, res) => {
   validate(req.body, authValidation.forgotPassword);
 
@@ -53,14 +69,16 @@ const forgotPassword = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: "Code Sent Successfully" });
 });
 
-const verifyResetToken = asyncHandler(async (req, res) => {
-  // validate(req.body, authValidation.)
+const verifyForgotPasswordOtp = asyncHandler(async (req, res) => {
+  validate(req.body, authValidation.verifyForgotPasswordOtp);
 
-  const tokenDoc = await authService.verifyResetToken(req.body);
+  const tempToken = await authService.verifyForgotPasswordOtp(req.body);
 
-  res
-    .status(200)
-    .json({ success: true, message: "Token Verified", data: tokenDoc });
+  res.status(200).json({
+    success: true,
+    message: "OTP Verified Successfully",
+    data: tempToken,
+  });
 });
 
 const resetPassword = asyncHandler(async (req, res) => {
@@ -73,31 +91,15 @@ const resetPassword = asyncHandler(async (req, res) => {
     .json({ success: true, message: "Password Reset Successfully" });
 });
 
-const sendVerificationEmail = asyncHandler(async (req, res) => {
-  validate(req.body, authValidation.sendVerificationEmail);
-
-  await authService.sendVerificationEmail(req.body);
-
-  res.status(200).json({ success: true, message: "Verification Email Sent" });
-});
-
-const verifyEmail = asyncHandler(async (req, res) => {
-  validate(req.body, authValidation.verifyEmail);
-
-  await authService.verifyEmail(req.body);
-
-  res.status(200).json({ success: true, message: "Email Verified" });
-});
-
 const AuthController = {
   register,
+  resendOtp,
+  verifyOtp,
   login,
-  logout,
   refreshToken,
+  logout,
   forgotPassword,
-  verifyResetToken,
+  verifyForgotPasswordOtp,
   resetPassword,
-  sendVerificationEmail,
-  verifyEmail,
 };
 module.exports = AuthController;

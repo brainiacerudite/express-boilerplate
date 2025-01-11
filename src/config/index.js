@@ -46,10 +46,10 @@ const config = {
       expiresIn: process.env.JWT_REFRESH_EXPIRES || "30d",
     },
     resetPassword: {
-      expiresIn: process.env.JWT_RESET_PASSWORD_EXPIRES || "30m",
+      expiresIn: process.env.JWT_RESET_PASSWORD_EXPIRES || "30", // in minutes
     },
     verifyEmail: {
-      expiresIn: process.env.JWT_VERIFY_EMAIL_EXPIRES || "30m",
+      expiresIn: process.env.JWT_VERIFY_EMAIL_EXPIRES || "30", // in minutes
     },
   },
   mail: {

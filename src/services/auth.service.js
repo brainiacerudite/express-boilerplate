@@ -1,10 +1,15 @@
-const { REFRESH, RESET_PASSWORD } = require("../config/tokenTypes");
+const {
+  REFRESH,
+  RESET_PASSWORD,
+  VERIFY_EMAIL,
+} = require("../config/tokenTypes");
 const ValidationException = require("../exceptions/ValidationException");
 const Token = require("../models/token.model");
 const User = require("../models/user.model");
 const bcrypt = require("bcryptjs");
 const emailService = require("./email.service");
 const tokenService = require("./token.service");
+const config = require("../config");
 
 const register = async (data) => {
   const { name, email, password, confirmPassword } = data;
@@ -26,19 +31,49 @@ const register = async (data) => {
     password: hashedPassword,
   });
 
-  const verificationToken = await tokenService.generateVerificationToken(
-    user.id
-  );
+  const verificationOtp = await tokenService.generateVerificationOtp(user.id);
 
   await emailService.sendVerificationEmail(
     email,
-    verificationToken.token,
-    verificationToken.expiresIn
+    verificationOtp.otp,
+    verificationOtp.expiresIn
   );
 
   const tokens = await tokenService.generateAuthToken(user.id);
 
   return { user, tokens };
+};
+
+const resendOtp = async (data) => {
+  const { email } = data;
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ValidationException(400, "User not found");
+  }
+
+  const verificationOtp = await tokenService.generateVerificationOtp(user.id);
+
+  await emailService.sendVerificationEmail(
+    email,
+    verificationOtp.otp,
+    verificationOtp.expiresIn
+  );
+};
+
+const verifyOtp = async (data) => {
+  const { email, otp } = data;
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ValidationException(400, "User not found");
+  }
+
+  const verifyOtp = await tokenService.verifyOtp(otp, VERIFY_EMAIL, user.id);
+
+  await user.updateOne({ isVerified: true });
+
+  await tokenService.deleteToken(verifyOtp.token);
 };
 
 const login = async (data) => {
@@ -63,20 +98,6 @@ const login = async (data) => {
   const tokens = await tokenService.generateAuthToken(userData.id);
 
   return { user, tokens };
-};
-
-const logout = async (refreshToken) => {
-  const token = await Token.findOne({
-    token: refreshToken,
-    type: REFRESH,
-    blacklisted: false,
-  });
-
-  if (!token) {
-    throw new ValidationException(400, "Invalid token");
-  }
-
-  await token.deleteOne();
 };
 
 const refreshToken = async (data) => {
@@ -104,6 +125,20 @@ const refreshToken = async (data) => {
   return tokens;
 };
 
+const logout = async (refreshToken) => {
+  const token = await Token.findOne({
+    token: refreshToken,
+    type: REFRESH,
+    blacklisted: false,
+  });
+
+  if (!token) {
+    throw new ValidationException(400, "Invalid token");
+  }
+
+  await token.deleteOne();
+};
+
 const forgotPassword = async (data) => {
   const { email } = data;
 
@@ -112,7 +147,7 @@ const forgotPassword = async (data) => {
     throw new ValidationException(400, "User not found");
   }
 
-  const passwordResetToken = await tokenService.generateResetPasswordToken(
+  const passwordResetToken = await tokenService.generateResetPasswordOtp(
     user.id
   );
 
@@ -123,79 +158,58 @@ const forgotPassword = async (data) => {
   );
 };
 
-const verifyResetToken = async (data) => {
-  const { token } = data;
+const verifyForgotPasswordOtp = async (data) => {
+  const { email, otp } = data;
 
-  const tokenDoc = await tokenService.verifyToken(token, RESET_PASSWORD);
-
-  if (!tokenDoc) {
-    throw new ValidationException(400, "Invalid or expired token");
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ValidationException(400, "User not found");
   }
 
-  return tokenDoc;
+  const resetPasswordToken = await tokenService.verifyOtp(
+    otp,
+    RESET_PASSWORD,
+    user.id
+  );
+
+  const tempToken = await tokenService.generateToken(
+    email,
+    config.jwt.resetPassword.expiresIn + "m",
+    RESET_PASSWORD
+  );
+
+  await tokenService.deleteToken(resetPasswordToken.token);
+
+  return { reset_token: tempToken };
 };
 
 const resetPassword = async (data) => {
-  const { token, password, confirmPassword } = data;
+  const { email, password, token } = data;
 
-  if (password !== confirmPassword) {
-    throw new ValidationException(400, "Passwords do not match");
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ValidationException(400, "User not found");
   }
 
-  // const tokenDoc = await Token.findOne({
-  //   token,
-  //   type: RESET_PASSWORD,
-  // });
-  const tokenDoc = await tokenService.verifyToken(token, RESET_PASSWORD);
-
-  // if (!tokenDoc) {
-  //   throw new ValidationException(400, "Invalid token");
-  // }
-
-  const user = await User.findById(tokenDoc.user);
+  const resetPasswordToken = await tokenService.verifyToken(
+    token,
+    RESET_PASSWORD
+  );
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  user.password = hashedPassword;
-  await user.save();
-
-  await tokenDoc.deleteOne();
-};
-
-const sendVerificationEmail = async (email, token, expiresIn) => {
-  // Implementation of sending the verification email
-  await emailService.sendEmail({
-    to: email,
-    subject: "Verify your account",
-    text: `Your OTP for account verification is ${token}. It will expire in ${expiresIn} minutes.`,
-  });
-};
-
-const verifyEmail = async (data) => {
-  const { token } = data;
-
-  const tokenDoc = await tokenService.verifyToken(token, VERIFY_EMAIL);
-
-  const user = await User.findById(tokenDoc.user);
-  if (!user) {
-    throw new ValidationException(400, "Invalid token");
-  }
-
-  user.isVerified = true;
-  await user.save();
-
-  await tokenDoc.deleteOne();
+  await user.updateOne({ password: hashedPassword });
 };
 
 const authService = {
   register,
+  resendOtp,
+  verifyOtp,
   login,
-  logout,
   refreshToken,
+  logout,
   forgotPassword,
-  verifyResetToken,
+  verifyForgotPasswordOtp,
   resetPassword,
-  sendVerificationEmail,
-  verifyEmail,
 };
 module.exports = authService;

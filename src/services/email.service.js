@@ -29,7 +29,7 @@ const sendVerificationEmail = async (email, token, expiresIn) => {
     <h1>Verify your account</h1>
     <p>Your verification code is:</p>
     <h2>${token}</h2>
-    <p>This code will expire in ${expiresIn}.</p>
+    <p>This code will expire in ${expiresIn} minutes.</p>
   `;
 
   await sendEmail({
@@ -44,7 +44,7 @@ const sendPasswordResetEmail = async (email, token, expiresIn) => {
     <h1>Password Reset</h1>
     <p>Your password reset code is:</p>
     <h2>${token}</h2>
-    <p>This code will expire in ${expiresIn}.</p>
+    <p>This code will expire in ${expiresIn} minutes.</p>
   `;
 
   await sendEmail({
