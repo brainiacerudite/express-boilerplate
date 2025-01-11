@@ -12,7 +12,7 @@ const generateToken = (userId, expires, type, secret = config.jwt.secret) => {
   return jwt.sign({ sub: userId, type }, secret, { expiresIn: expires });
 };
 
-const generateNumericToken = (length) => {
+const generateOtp = (length) => {
   return Math.floor(
     Math.pow(10, length - 1) + Math.random() * (Math.pow(10, length) - 1)
   );
@@ -30,6 +30,10 @@ const saveToken = async (token, userId, expires, type, blacklisted = false) => {
   return tokenData;
 };
 
+const deleteToken = async (token) => {
+  await Token.deleteOne({ token });
+};
+
 const verifyToken = async (token, type, secret = config.jwt.secret) => {
   const payload = jwt.verify(token, secret);
 
@@ -42,6 +46,24 @@ const verifyToken = async (token, type, secret = config.jwt.secret) => {
 
   if (!tokenData) {
     throw new ValidationException(400, "Invalid token");
+  }
+
+  return tokenData;
+};
+
+const verifyOtp = async (otp, type, userId) => {
+  const tokenData = await Token.findOne({
+    token: otp,
+    type,
+    blacklisted: false,
+  });
+
+  if (!tokenData) {
+    throw new ValidationException(400, "Invalid OTP");
+  }
+
+  if (tokenData.user.toString() !== userId) {
+    throw new ValidationException(400, "Invalid OTP");
   }
 
   return tokenData;
@@ -74,36 +96,35 @@ const generateAuthToken = async (userId) => {
   };
 };
 
-const generateResetPasswordToken = async (userId) => {
-  const token = generateNumericToken(4);
-
-  await saveToken(
-    token,
-    userId,
-    config.jwt.resetPassword.expiresIn,
-    RESET_PASSWORD
+const generateResetPasswordOtp = async (userId) => {
+  const otp = generateOtp(4);
+  const expiresIn = new Date(
+    Date.now() + config.jwt.resetPassword.expiresIn * 60 * 1000
   );
 
-  return { token, expiresIn: config.jwt.resetPassword.expiresIn };
+  await saveToken(otp, userId, expiresIn, RESET_PASSWORD);
+
+  return { otp, expiresIn: expiresIn };
 };
 
-const generateVerificationToken = async (userId) => {
-  const token = generateNumericToken(4);
-
-  await saveToken(
-    token,
-    userId,
-    config.jwt.verifyEmail.expiresIn,
-    VERIFY_EMAIL
+const generateVerificationOtp = async (userId) => {
+  const otp = generateOtp(4);
+  const expiresIn = new Date(
+    Date.now() + config.jwt.resetPassword.expiresIn * 60 * 1000
   );
 
-  return { token, expiresIn: config.jwt.verifyEmail.expiresIn };
+  await saveToken(otp, userId, expiresIn, VERIFY_EMAIL);
+
+  return { otp, expiresIn: expiresIn };
 };
 
 const tokenService = {
+  generateToken,
   generateAuthToken,
-  generateResetPasswordToken,
-  generateVerificationToken,
+  generateResetPasswordOtp,
+  generateVerificationOtp,
   verifyToken,
+  verifyOtp,
+  deleteToken,
 };
 module.exports = tokenService;

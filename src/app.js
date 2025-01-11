@@ -20,7 +20,7 @@ dbConnection();
 // middlewares
 app.use(morgan(config.log.format, { stream }));
 app.use(
-  cors({ origin: config.cors.origin, credentials: config.cors.credentials })
+  cors({ origin: config.cors.origin, credentials: config.cors.credential })
 );
 app.use(hpp());
 app.use(helmet());

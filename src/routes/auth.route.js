@@ -4,12 +4,15 @@ const AuthController = require("../controllers/auth.controller");
 const router = express.Router();
 
 router.post("/register", AuthController.register);
+router.post("/otp/resend", AuthController.resendOtp);
+router.post("/otp/verify", AuthController.verifyOtp);
+
 router.post("/login", AuthController.login);
-router.post("/logout", AuthController.logout);
 router.post("/refresh-token", AuthController.refreshToken);
+router.post("/logout", AuthController.logout);
+
 router.post("/forgot-password", AuthController.forgotPassword);
-router.post("/reset-password", AuthController.resetPassword);
-router.post("/send-verification-email", AuthController.sendVerificationEmail);
-router.post("/verify-email", AuthController.verifyEmail);
+router.post("/forgot-password/verify", AuthController.verifyForgotPasswordOtp);
+router.post("/reset-password/:token", AuthController.resetPassword);
 
 module.exports = router;
