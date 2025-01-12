@@ -7,6 +7,7 @@ const {
 } = require("../config/tokenTypes");
 const ValidationException = require("../exceptions/ValidationException");
 const Token = require("../models/token.model");
+const jwt = require("jsonwebtoken");
 
 const generateToken = (userId, expires, type, secret = config.jwt.secret) => {
   return jwt.sign({ sub: userId, type }, secret, { expiresIn: expires });
@@ -18,11 +19,11 @@ const generateOtp = (length) => {
   );
 };
 
-const saveToken = async (token, userId, expires, type, blacklisted = false) => {
+const saveToken = async (token, user, expiresAt, type, blacklisted = false) => {
   const tokenData = await Token.create({
     token,
-    userId,
-    expires,
+    user,
+    expiresAt,
     type,
     blacklisted,
   });
@@ -62,6 +63,10 @@ const verifyOtp = async (otp, type, userId) => {
     throw new ValidationException(400, "Invalid OTP");
   }
 
+  if (tokenData.expiresAt < Date.now()) {
+    throw new ValidationException(400, "OTP expired");
+  }
+
   if (tokenData.user.toString() !== userId) {
     throw new ValidationException(400, "Invalid OTP");
   }
@@ -70,50 +75,74 @@ const verifyOtp = async (otp, type, userId) => {
 };
 
 const generateAuthToken = async (userId) => {
-  const accessToken = generateToken(
-    userId,
-    config.jwt.access.expiresIn,
-    ACCESS
-  );
+  // convert config.jwt.access.expiresIn in minutes to milliseconds
+  const expiresIn = config.jwt.access.expiresIn * 60000;
+  const accessToken = generateToken(userId, expiresIn, ACCESS);
 
-  const refreshToken = generateToken(
+  // convert config.jwt.refresh.expiresIn in days to milliseconds
+  const refreshExpiresIn = config.jwt.refresh.expiresIn * 86400000;
+  const refreshToken = generateToken(userId, refreshExpiresIn, REFRESH);
+
+  await saveToken(
+    refreshToken,
     userId,
-    config.jwt.refresh.expiresIn,
+    new Date(Date.now() + refreshExpiresIn),
     REFRESH
   );
-
-  await saveToken(refreshToken, userId, config.jwt.refresh.expiresIn, REFRESH);
 
   return {
     access: {
       token: accessToken,
-      expiresIn: config.jwt.access.expiresIn,
+      expiresIn: expiresIn,
     },
     refresh: {
       token: refreshToken,
-      expiresIn: config.jwt.refresh.expiresIn,
+      expiresIn: refreshExpiresIn,
     },
   };
 };
 
 const generateResetPasswordOtp = async (userId) => {
-  const otp = generateOtp(4);
-  const expiresIn = new Date(
-    Date.now() + config.jwt.resetPassword.expiresIn * 60 * 1000
-  );
+  let otp = null;
+  let expiresIn = null;
 
-  await saveToken(otp, userId, expiresIn, RESET_PASSWORD);
+  const tokenData = await Token.findOne({
+    user: userId,
+    type: RESET_PASSWORD,
+  });
+
+  if (tokenData) {
+    otp = tokenData.token;
+    expiresIn = tokenData.expiresAt;
+  } else {
+    otp = generateOtp(4);
+    // convert config.jwt.resetPassword.expiresIn in minutes to milliseconds
+    expiresIn = new Date(
+      Date.now() + config.jwt.resetPassword.expiresIn * 60000
+    );
+    await saveToken(otp, userId, expiresIn, RESET_PASSWORD);
+  }
 
   return { otp, expiresIn: expiresIn };
 };
 
 const generateVerificationOtp = async (userId) => {
-  const otp = generateOtp(4);
-  const expiresIn = new Date(
-    Date.now() + config.jwt.resetPassword.expiresIn * 60 * 1000
-  );
+  let otp = null;
+  let expiresIn = null;
 
-  await saveToken(otp, userId, expiresIn, VERIFY_EMAIL);
+  const tokenData = await Token.findOne({ user: userId, type: VERIFY_EMAIL });
+
+  if (tokenData) {
+    otp = tokenData.token;
+    expiresIn = tokenData.expiresAt;
+  } else {
+    otp = generateOtp(4);
+    // convert config.jwt.resetPassword.expiresIn in minutes to milliseconds
+    expiresIn = new Date(
+      Date.now() + config.jwt.resetPassword.expiresIn * 60000
+    );
+    await saveToken(otp, userId, expiresIn, VERIFY_EMAIL);
+  }
 
   return { otp, expiresIn: expiresIn };
 };
