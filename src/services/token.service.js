@@ -7,6 +7,7 @@ const {
 } = require("../config/tokenTypes");
 const ValidationException = require("../exceptions/ValidationException");
 const Token = require("../models/token.model");
+const jwt = require("jsonwebtoken");
 
 const generateToken = (userId, expires, type, secret = config.jwt.secret) => {
   return jwt.sign({ sub: userId, type }, secret, { expiresIn: expires });
@@ -18,11 +19,11 @@ const generateOtp = (length) => {
   );
 };
 
-const saveToken = async (token, userId, expires, type, blacklisted = false) => {
+const saveToken = async (token, user, expiresAt, type, blacklisted = false) => {
   const tokenData = await Token.create({
     token,
-    userId,
-    expires,
+    user,
+    expiresAt,
     type,
     blacklisted,
   });

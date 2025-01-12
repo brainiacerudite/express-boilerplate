@@ -40,10 +40,10 @@ const config = {
   jwt: {
     secret: process.env.JWT_SECRET || "secret",
     access: {
-      expiresIn: process.env.JWT_ACCESS_EXPIRES || "1h",
+      expiresIn: process.env.JWT_ACCESS_EXPIRES || "60", // in minutes
     },
     refresh: {
-      expiresIn: process.env.JWT_REFRESH_EXPIRES || "30d",
+      expiresIn: process.env.JWT_REFRESH_EXPIRES || "30", // in days
     },
     resetPassword: {
       expiresIn: process.env.JWT_RESET_PASSWORD_EXPIRES || "30", // in minutes
