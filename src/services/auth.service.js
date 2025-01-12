@@ -95,7 +95,7 @@ const login = async (data) => {
     );
   }
 
-  const tokens = await tokenService.generateAuthToken(userData.id);
+  const tokens = await tokenService.generateAuthToken(user.id);
 
   return { user, tokens };
 };
@@ -107,6 +107,7 @@ const refreshToken = async (data) => {
     token: refreshToken,
     type: REFRESH,
   });
+  console.log(tokenDoc);
 
   if (!tokenDoc) {
     throw new ValidationException(400, "Invalid token");
