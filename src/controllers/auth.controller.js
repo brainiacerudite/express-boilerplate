@@ -46,7 +46,7 @@ const login = asyncHandler(async (req, res) => {
 const refreshToken = asyncHandler(async (req, res) => {
   validate(req.body, authValidation.refreshToken);
 
-  const tokens = await authService.refreshToken(req.body.refreshToken);
+  const tokens = await authService.refreshToken(req.body);
 
   res
     .status(200)
@@ -84,7 +84,7 @@ const verifyForgotPasswordOtp = asyncHandler(async (req, res) => {
 const resetPassword = asyncHandler(async (req, res) => {
   validate(req.body, authValidation.resetPassword);
 
-  await authService.resetPassword(req.body);
+  await authService.resetPassword(req.params.token, req.body);
 
   res
     .status(200)
