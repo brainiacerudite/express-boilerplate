@@ -107,7 +107,6 @@ const refreshToken = async (data) => {
     token: refreshToken,
     type: REFRESH,
   });
-  console.log(tokenDoc);
 
   if (!tokenDoc) {
     throw new ValidationException(400, "Invalid token");
@@ -152,9 +151,9 @@ const forgotPassword = async (data) => {
     user.id
   );
 
-  await emailService.sendResetPasswordEmail(
+  await emailService.sendPasswordResetEmail(
     email,
-    passwordResetToken.token,
+    passwordResetToken.otp,
     passwordResetToken.expiresIn
   );
 };
@@ -173,29 +172,31 @@ const verifyForgotPasswordOtp = async (data) => {
     user.id
   );
 
-  const tempToken = await tokenService.generateToken(
-    email,
-    config.jwt.resetPassword.expiresIn + "m",
-    RESET_PASSWORD
-  );
+  const tempToken = await tokenService.generateTempToken(user.id);
 
   await tokenService.deleteToken(resetPasswordToken.token);
 
   return { reset_token: tempToken };
 };
 
-const resetPassword = async (data) => {
-  const { email, password, token } = data;
+const resetPassword = async (token, data) => {
+  const { password, confirmPassword } = data;
 
-  const user = await User.findOne({ email });
-  if (!user) {
-    throw new ValidationException(400, "User not found");
+  if (password !== confirmPassword) {
+    throw new ValidationException(400, "Passwords do not match");
   }
 
   const resetPasswordToken = await tokenService.verifyToken(
     token,
-    RESET_PASSWORD
+    RESET_PASSWORD,
+    config.jwt.secret,
+    false
   );
+
+  const user = await User.findOne({ _id: resetPasswordToken.sub });
+  if (!user) {
+    throw new ValidationException(400, "User not found");
+  }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 

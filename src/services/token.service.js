@@ -35,21 +35,32 @@ const deleteToken = async (token) => {
   await Token.deleteOne({ token });
 };
 
-const verifyToken = async (token, type, secret = config.jwt.secret) => {
-  const payload = jwt.verify(token, secret);
+const verifyToken = async (
+  token,
+  type,
+  secret = config.jwt.secret,
+  isStored = true
+) => {
+  try {
+    const payload = jwt.verify(token, secret);
 
-  const tokenData = await Token.findOne({
-    token,
-    type,
-    user: payload.sub,
-    blacklisted: false,
-  });
+    if (!isStored) return payload;
 
-  if (!tokenData) {
+    const tokenData = await Token.findOne({
+      token,
+      type,
+      user: payload.sub,
+      blacklisted: false,
+    });
+
+    if (!tokenData) {
+      throw new ValidationException(400, "Invalid token");
+    }
+
+    return tokenData;
+  } catch (error) {
     throw new ValidationException(400, "Invalid token");
   }
-
-  return tokenData;
 };
 
 const verifyOtp = async (otp, type, userId) => {
@@ -112,9 +123,15 @@ const generateResetPasswordOtp = async (userId) => {
   });
 
   if (tokenData) {
-    otp = tokenData.token;
-    expiresIn = tokenData.expiresAt;
-  } else {
+    if (tokenData.expiresAt > Date.now()) {
+      otp = tokenData.token;
+      expiresIn = tokenData.expiresAt;
+    } else {
+      await deleteToken(tokenData.token);
+    }
+  }
+
+  if (!otp) {
     otp = generateOtp(4);
     // convert config.jwt.resetPassword.expiresIn in minutes to milliseconds
     expiresIn = new Date(
@@ -133,9 +150,17 @@ const generateVerificationOtp = async (userId) => {
   const tokenData = await Token.findOne({ user: userId, type: VERIFY_EMAIL });
 
   if (tokenData) {
-    otp = tokenData.token;
-    expiresIn = tokenData.expiresAt;
-  } else {
+    // otp = tokenData.token;
+    // expiresIn = tokenData.expiresAt;
+
+    if (tokenData.expiresAt > Date.now()) {
+      otp = tokenData.token;
+      expiresIn = tokenData.expiresAt;
+    } else {
+      await deleteToken(tokenData.token);
+    }
+  }
+  if (!otp) {
     otp = generateOtp(4);
     // convert config.jwt.resetPassword.expiresIn in minutes to milliseconds
     expiresIn = new Date(
@@ -147,11 +172,21 @@ const generateVerificationOtp = async (userId) => {
   return { otp, expiresIn: expiresIn };
 };
 
+const generateTempToken = async (userId) => {
+  // convert config.jwt.resetPassword.expiresIn in minutes to milliseconds
+  const tempTokenExpiresIn = config.jwt.resetPassword.expiresIn * 60000;
+
+  const tempToken = generateToken(userId, tempTokenExpiresIn, RESET_PASSWORD);
+
+  return tempToken;
+};
+
 const tokenService = {
   generateToken,
   generateAuthToken,
   generateResetPasswordOtp,
   generateVerificationOtp,
+  generateTempToken,
   verifyToken,
   verifyOtp,
   deleteToken,
